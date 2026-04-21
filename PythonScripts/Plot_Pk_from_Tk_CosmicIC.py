@@ -1,6 +1,3 @@
-
-
-
 import numpy as np
 import argparse
 import matplotlib.pyplot as plt
@@ -33,6 +30,7 @@ def compute_pk(tk_file, n_s, sigma8_target, h):
     # Normalize to match sigma8
     s8_current = sigma_r(k_hmpc, Pk_unnorm, R=8.0)
     norm = sigma8_target**2 / s8_current**2
+    print("Value of norm is ", norm)
     Pk = norm * Pk_unnorm
 
     s8_final = sigma_r(k_hmpc, Pk, R=8.0)
@@ -55,11 +53,11 @@ def plot_pk(k, Pk, output_file="Pk_sigma8.png"):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--file-cosmicic-tk-lcdm", type=str)
-    parser.add_argument("--file-cosmicic-tk-wdm1", type=str)
-    parser.add_argument("--file-cosmicic-tk-wdm2", type=str)
-    parser.add_argument("--file-cosmicic-tk-fdm1", type=str)
-    parser.add_argument("--file-cosmicic-tk-fdm2", type=str)
+    parser.add_argument("--tk-files", nargs="+", required=True,
+                        help="List of transfer function files")
+
+    parser.add_argument("--labels", nargs="*",
+                        help="Optional labels for each file (same order)")
 
     parser.add_argument("--n_s", type=float, required=True)
     parser.add_argument("--sigma8", type=float, required=True)
@@ -68,36 +66,29 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # Collect all provided files
-    file_map = {
-        "LCDM": args.file_cosmicic_tk_lcdm,
-        "WDM1": args.file_cosmicic_tk_wdm1,
-        "WDM2": args.file_cosmicic_tk_wdm2,
-        "FDM1": args.file_cosmicic_tk_fdm1,
-        "FDM2": args.file_cosmicic_tk_fdm2,
-    }
+    # Safety check
+    if args.labels and len(args.labels) != len(args.tk_files):
+        raise ValueError("Number of labels must match number of tk-files")
 
-    # Filter out None entries
-    file_map = {k: v for k, v in file_map.items() if v is not None}
-
-    # Enforce at least one file
-    if len(file_map) == 0:
-        parser.error("At least one --file-cosmicic-tk-* must be provided.")
-
-    # Plot everything together
     plt.figure()
+    colors = ["black", "blue", "red","green"]
 
-    for label, filepath in file_map.items():
+    for i, filepath in enumerate(args.tk_files):
         k, Pk = compute_pk(filepath, args.n_s, args.sigma8, args.h)
-        plt.loglog(k, Pk, label=label)
 
-    plt.xlabel("k [h/Mpc]")
-    plt.ylabel("P(k) [(Mpc/h)^3]")
-    plt.title("Matter Power Spectrum normalized to sigma8")
+        if args.labels:
+            label = args.labels[i]
+        else:
+            label = os.path.splitext(os.path.basename(filepath))[0]
+
+        plt.loglog(k, Pk, label=label, color=colors[i])
+
+    plt.xlabel(r"$k\ [h\,\mathrm{Mpc}^{-1}]$")
+    plt.ylabel(r"$P(k)\ [(\mathrm{Mpc}\,h^{-1})^3]$")
     plt.grid(True, which="both")
     plt.ylim([1e-6, 3e4])
     plt.legend()
-    plt.savefig(args.output, dpi=150, bbox_inches='tight')
 
+    plt.savefig(args.output, dpi=150, bbox_inches='tight')
     print(f"Saved plot to {args.output}")
 

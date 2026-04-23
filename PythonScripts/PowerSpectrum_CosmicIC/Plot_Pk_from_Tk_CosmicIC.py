@@ -2,7 +2,7 @@ import numpy as np
 import argparse
 import matplotlib.pyplot as plt
 import scipy.integrate as integrate
-
+import os
 
 # Top-hat window in Fourier space
 def W_tophat(kR):
@@ -63,8 +63,13 @@ if __name__ == "__main__":
     parser.add_argument("--sigma8", type=float, required=True)
     parser.add_argument("--h", type=float, required=True)
     parser.add_argument("--output", type=str, default="Pk_final.png")
+    parser.add_argument("--output-pk-files", nargs="+", required=True,
+                    help="Output filename(s) for P(k). Either one base name or one per tk-file")
 
     args = parser.parse_args()
+
+    if len(args.output_pk_files) != len(args.tk_files):
+        raise ValueError("Number of spectrum filenames must match number of tk-files")
 
     # Safety check
     if args.labels and len(args.labels) != len(args.tk_files):
@@ -82,6 +87,13 @@ if __name__ == "__main__":
             label = os.path.splitext(os.path.basename(filepath))[0]
 
         plt.loglog(k, Pk, label=label, color=colors[i])
+        outname = args.output_pk_files[i]
+
+        np.savetxt(outname,
+                   np.column_stack([k, Pk]),
+                   header="k [h/Mpc]    P(k) [(Mpc/h)^3]")
+
+        print("Saved spectrum to {}".format(outname))
 
     plt.xlabel(r"$k\ [h\,\mathrm{Mpc}^{-1}]$")
     plt.ylabel(r"$P(k)\ [(\mathrm{Mpc}\,h^{-1})^3]$")
@@ -89,6 +101,18 @@ if __name__ == "__main__":
     plt.ylim([1e-6, 3e4])
     plt.legend()
 
-    plt.savefig(args.output, dpi=150, bbox_inches='tight')
-    print(f"Saved plot to {args.output}")
+# 1. Define the directory name
+    output_dir = "Images"
+
+    # 2. Create the directory if it doesn't already exist
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # 3. Join the directory path with your filename
+    # This ensures it works on both Windows and Mac/Linux
+    file_path = os.path.join(output_dir, args.output)
+
+    # 4. Save the figure
+    plt.savefig(file_path, dpi=150)
+    print(f"Saved combined plot to {file_path}")
 

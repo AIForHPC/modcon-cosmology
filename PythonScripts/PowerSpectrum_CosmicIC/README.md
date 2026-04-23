@@ -14,3 +14,8 @@ The python script computes the power spectra from the transfer functions output 
 - `--h` : Dimensionless Hubble parameter
 - `--output` : Output plot filename (e.g., `.png`)
 - `--output-pk-files` : Output file(s) to save computed power spectrum data
+
+## Output
+
+- The images are written into `Images` directory.
+- The power spectrum files are written into the output files specified by `output-pk-files`. This can be used to compare these against the output power spectrum from Gimlet and Nyx.
